@@ -1,0 +1,42 @@
+- name: Install Docker, build and run Dockerfile, and configure permissions
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure Docker dependencies are installed
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Ensure Docker group exists
+      group:
+        name: docker
+        state: present
+
+    - name: Add the current user to the Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Restart Docker service to apply group changes
+      service:
+        name: docker
+        state: restarted
+
+    - name: Copy Dockerfile to target machine
+      copy:
+        src: docker
+        dest: /tmp/Dockerfile
+
+    - name: Build the Docker image
+      command: docker build -t web-db-server /tmp
+

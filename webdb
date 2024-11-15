@@ -1,0 +1,8 @@
+FROM ubuntu:20.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    mysql-server \
+    && apt-get clean
+
+CMD service apache2 start && service mysql start && tail -f /dev/null
