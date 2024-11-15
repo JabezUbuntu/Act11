@@ -1,0 +1,55 @@
+- name: Install Docker, build and run Dockerfile, and configure permissions
+  hosts: all
+  become: yes  # Ensures elevated privileges
+  tasks:
+    # Install Docker (if not already installed)
+    - name: Ensure Docker dependencies are installed
+      apt:
+        name: 
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      command: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+
+    - name: Add Docker repository
+      shell: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      args:
+        warn: false  # Prevent warnings if the repository is already added
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    # Add the current user to the Docker group
+    - name: Ensure Docker group exists
+      group:
+        name: docker
+        state: present
+
+    - name: Add the current user to the Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Restart Docker service to apply group changes
+      service:
+        name: docker
+        state: restarted
+
+    # Build and run the Dockerfile
+    - name: Copy Dockerfile to target machine
+      copy:
+        src: ./Dockerfile
+        dest: /tmp/Dockerfile
+
+    - name: Build the Docker image
+      command: docker build -t web-db-server /tmp
+
+    - name: Run the Docker container
+      command: docker run -d --name web_db_container -p 80:80 -p 3306:3306 web-db-server
